@@ -1,5 +1,6 @@
 const std = @import("std");
 const raylib = @import("src/raylib/build.zig");
+const zflecs = @import("libs/zflecs/build.zig");
 
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
@@ -24,6 +25,14 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // exe.addCSourceFiles(&[_][]const u8{"./src/c/physacImpl.c"}, &[_][]const u8{ "-g", "-O3" });
+    exe.addIncludePath(.{ .path = "./src/c" });
+    exe.linkLibC();
+
+    const zflecs_pkg = zflecs.package(b, target, optimize, .{});
+
+    zflecs_pkg.link(exe);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

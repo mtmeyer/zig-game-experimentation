@@ -1,16 +1,43 @@
 const std = @import("std");
 const raylib = @import("raylib");
+const ecs = @import("zflecs");
+const necs = @import("./ecs.zig");
+
 const IsKeyDown = raylib.IsKeyDown;
 const Keys = raylib.KeyboardKey;
 
-const speed: f16 = 20;
+const speed: f16 = 40;
 const gravity: f16 = 9.8;
-const friction: f16 = 25;
+const friction: f16 = 80;
+const jumpVelocity: f16 = 10;
 
 const clampVelocityX: f32 = 8;
 const clampVelocityY: f32 = 100;
 
+const velocityDeadZone: f16 = 0.1;
+
+pub const Position = raylib.Vector2;
+pub const CollisionRect = raylib.Rectangle;
+pub const Velocity = raylib.Vector2;
+
 pub fn main() void {
+    const reg = necs.Register.init(std.heap.c_allocator);
+    defer reg.deinit();
+
+    var testReg = reg.entities;
+    _ = testReg;
+
+    reg.add();
+
+    const world = ecs.init();
+    defer _ = ecs.fini(world);
+
+    ecs.COMPONENT(world, Position);
+
+    const player = ecs.new_entity(world, "player");
+
+    _ = ecs.set(world, player, Position, .{ .x = 200, .y = 200 });
+
     raylib.SetConfigFlags(raylib.ConfigFlags{ .FLAG_WINDOW_RESIZABLE = true });
     raylib.InitWindow(800, 800, "hello world!");
     raylib.SetTargetFPS(60);
@@ -19,12 +46,12 @@ pub fn main() void {
 
     defer raylib.CloseWindow();
 
-    var pos: raylib.Vector2 = .{ .x = 200, .y = 200 };
     var playerCollisionRect: raylib.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
 
     var isPlayerOnGround = false;
 
     var velocity: raylib.Vector2 = .{ .x = 0, .y = 0 };
+    var pos: raylib.Vector2 = .{ .x = 200, .y = 200 };
 
     while (!raylib.WindowShouldClose()) {
         var dt = raylib.GetFrameTime();
@@ -35,6 +62,10 @@ pub fn main() void {
             velocity.x -= friction * dt;
         } else if (velocity.x < 0 and inputDirection.x == 0) {
             velocity.x += friction * dt;
+        }
+
+        if (velocity.x < velocityDeadZone and velocity.x > -velocityDeadZone) {
+            velocity.x = 0;
         }
 
         playerCollisionRect = .{ .x = pos.x, .y = pos.y, .width = @floatFromInt(sprite.width), .height = @floatFromInt(sprite.height) };
@@ -57,11 +88,16 @@ pub fn main() void {
 
         if (isPlayerOnGround) {
             velocity.y = 0;
+
+            if (IsKeyDown(.KEY_SPACE)) {
+                velocity.y -= jumpVelocity;
+            }
         } else {
             velocity.y += gravity * dt;
         }
 
-        pos = raylib.Vector2Add(pos, clampVelocity(velocity));
+        var currentPos: raylib.Vector2 = .{ .x = pos.x, .y = pos.y };
+        pos = (raylib.Vector2Add(currentPos, clampVelocity(velocity)));
 
         raylib.DrawTexture(sprite, @intFromFloat(pos.x), @intFromFloat(pos.y), raylib.WHITE);
     }
