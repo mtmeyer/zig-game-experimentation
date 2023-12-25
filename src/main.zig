@@ -20,14 +20,17 @@ pub const Position = raylib.Vector2;
 pub const CollisionRect = raylib.Rectangle;
 pub const Velocity = raylib.Vector2;
 
-pub fn main() void {
-    const reg = necs.Register.init(std.heap.c_allocator);
+pub fn main() !void {
+    // const reg = necs.Register.init(std.heap.c_allocator);
+    var reg = necs.Register{ .entities = std.ArrayList(u16).init(std.heap.c_allocator) };
     defer reg.deinit();
 
     var testReg = reg.entities;
     _ = testReg;
 
-    reg.add();
+    _ = try reg.add();
+
+    std.debug.print("Test print: {}\n", .{reg.entities.items[0]});
 
     const world = ecs.init();
     defer _ = ecs.fini(world);

@@ -7,23 +7,23 @@ pub const Register = struct {
     entities: std.ArrayList(u16),
 
     pub fn init(allocator: std.mem.Allocator) Register {
-        return initRegister(allocator);
+        var entities = std.ArrayList(u16).init(allocator);
+
+        return Register{ .entities = entities };
     }
 
     pub fn deinit(self: Self) void {
         self.entities.deinit();
     }
 
-    pub fn add() u16 {
-        std.debug.print("Add entity");
-        return 15;
+    pub fn add(self: *Register) !u16 {
+        var rand = std.rand.DefaultPrng.init(0);
+        const id = rand.random().uintAtMost(u16, 65535);
+        std.debug.print("\nAdd entity w/ ID: {}\n", .{id});
+
+        try self.entities.append(id);
+        return id;
     }
 };
-
-fn initRegister(allocator: std.mem.Allocator) Register {
-    var entities = std.ArrayList(u16).init(allocator);
-
-    return Register{ .entities = entities };
-}
 
 // Way to instantiate new list of components
