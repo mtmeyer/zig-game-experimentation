@@ -1,7 +1,6 @@
 const std = @import("std");
 const raylib = @import("raylib");
-const ecs = @import("zflecs");
-const necs = @import("./ecs.zig");
+const ecs = @import("./ecs.zig");
 
 const IsKeyDown = raylib.IsKeyDown;
 const Keys = raylib.KeyboardKey;
@@ -21,25 +20,20 @@ pub const CollisionRect = raylib.Rectangle;
 pub const Velocity = raylib.Vector2;
 
 pub fn main() !void {
-    // const reg = necs.Register.init(std.heap.c_allocator);
-    var reg = necs.Register{ .entities = std.ArrayList(u16).init(std.heap.c_allocator) };
+    var reg = ecs.Register{};
+    reg.init(std.heap.c_allocator);
     defer reg.deinit();
 
     var testReg = reg.entities;
     _ = testReg;
 
-    _ = try reg.add();
+    _ = try reg.addEntity();
+
+    reg.addComponent(raylib.Vector2, ecs.ComponentTypes.velocity, raylib.Vector2{ .x = 0, .y = 10 });
+    reg.addComponent(raylib.Vector2, ecs.ComponentTypes.position, raylib.Vector2{ .x = -100, .y = -50 });
+    reg.addComponent(ecs.ComponentDataTypes.position, ecs.ComponentTypes.position, ecs.ComponentDataTypes.position{ .x = -100, .y = -50 });
 
     std.debug.print("Test print: {}\n", .{reg.entities.items[0]});
-
-    const world = ecs.init();
-    defer _ = ecs.fini(world);
-
-    ecs.COMPONENT(world, Position);
-
-    const player = ecs.new_entity(world, "player");
-
-    _ = ecs.set(world, player, Position, .{ .x = 200, .y = 200 });
 
     raylib.SetConfigFlags(raylib.ConfigFlags{ .FLAG_WINDOW_RESIZABLE = true });
     raylib.InitWindow(800, 800, "hello world!");
