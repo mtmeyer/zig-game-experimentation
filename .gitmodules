@@ -1,15 +1,3 @@
-[submodule "raylib"]
-	path = raylib
-	url = https://github.com/ryupold/raylib.zig
 [submodule "src/raylib"]
 	path = src/raylib
 	url = https://github.com/ryupold/raylib.zig
-[submodule "src/raygui"]
-	path = src/raygui
-	url = https://github.com/raysan5/raygui
-[submodule "src/physac"]
-	path = src/physac
-	url = https://github.com/victorfisac/Physac
-[submodule "src/zig-ecs"]
-	path = src/zig-ecs
-	url = https://github.com/prime31/zig-ecs
