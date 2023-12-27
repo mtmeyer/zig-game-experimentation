@@ -9,18 +9,18 @@ fn AddSharedComponentFields(comptime T: type) type {
     };
 }
 
-pub const ComponentTypes = enum { position, velocity, sprite };
+pub const ComponentTypes = enum { transform, velocity, sprite };
 
-pub const PositionComponent = AddSharedComponentFields(raylib.Vector2);
+pub const TransformComponent = AddSharedComponentFields(raylib.Rectangle);
 pub const VelocityComponent = AddSharedComponentFields(raylib.Vector3);
 pub const SpriteComponent = AddSharedComponentFields(raylib.Texture2D);
 
-pub const ComponentUnion = union(ComponentTypes) { position: PositionComponent, velocity: VelocityComponent, sprite: SpriteComponent };
+pub const ComponentUnion = union(ComponentTypes) { transform: TransformComponent, velocity: VelocityComponent, sprite: SpriteComponent };
 
 pub const Register = struct {
     entities: std.ArrayList(u16) = undefined,
     components: struct {
-        position: std.ArrayList(PositionComponent),
+        transform: std.ArrayList(TransformComponent),
         velocity: std.ArrayList(VelocityComponent),
         sprite: std.ArrayList(SpriteComponent),
     } = undefined,
@@ -28,7 +28,7 @@ pub const Register = struct {
     pub fn init(self: *Register, allocator: std.mem.Allocator) void {
         self.entities = std.ArrayList(u16).init(allocator);
         self.components = .{
-            .position = std.ArrayList(PositionComponent).init(allocator),
+            .transform = std.ArrayList(TransformComponent).init(allocator),
             .velocity = std.ArrayList(VelocityComponent).init(allocator),
             .sprite = std.ArrayList(SpriteComponent).init(allocator),
         };
@@ -50,9 +50,9 @@ pub const Register = struct {
     pub fn addComponent(self: *Register, data: ComponentUnion) !void {
         // TODO: add functionality to ignore dupes
         switch (data) {
-            .position => {
-                std.debug.print("Adding position component with entity id: {}\n", .{data.position.entityId});
-                try self.components.position.append(data.position);
+            .transform => {
+                std.debug.print("Adding transform component with entity id: {}\n", .{data.transform.entityId});
+                try self.components.transform.append(data.transform);
             },
             .velocity => {
                 std.debug.print("Adding velocity component with entity id: {}\n", .{data.velocity.entityId});
@@ -67,10 +67,10 @@ pub const Register = struct {
 
     pub fn getComponentByEntity(self: *Register, entityId: u16, component: ComponentTypes) ?ComponentUnion {
         switch (component) {
-            .position => {
-                for (self.components.position.items) |item| {
+            .transform => {
+                for (self.components.transform.items) |item| {
                     if (item.entityId == entityId) {
-                        return ComponentUnion{ .position = item };
+                        return ComponentUnion{ .transform = item };
                     }
                 }
             },
@@ -95,8 +95,8 @@ pub const Register = struct {
     pub fn getAllComponentsByType(self: *Register, comptime T: type) ?[](T) {
         std.debug.print("Type: {}", .{T});
         switch (T) {
-            PositionComponent => {
-                return self.components.position.items;
+            TransformComponent => {
+                return self.components.transform.items;
             },
             VelocityComponent => {
                 return self.components.velocity.items;

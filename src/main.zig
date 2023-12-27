@@ -29,16 +29,16 @@ pub fn main() !void {
 
     _ = try reg.addEntity();
 
-    try reg.addComponent(ecs.ComponentUnion{ .position = .{ .entityId = 123, .data = .{ .x = -100, .y = -50 } } });
+    try reg.addComponent(ecs.ComponentUnion{ .transform = .{ .entityId = 123, .data = .{ .x = -100, .y = -50, .width = 123, .height = 123 } } });
     try reg.addComponent(ecs.ComponentUnion{ .velocity = .{ .entityId = 123, .data = .{ .x = -100, .y = -50, .z = 123 } } });
 
-    var component = reg.getComponentByEntity(123, ecs.ComponentTypes.position);
+    var component = reg.getComponentByEntity(123, ecs.ComponentTypes.transform);
 
-    var positionComponents = reg.getAllComponentsByType(ecs.PositionComponent);
+    var transformComponents = reg.getAllComponentsByType(ecs.TransformComponent);
 
-    if (component != null and positionComponents != null) {
-        std.debug.print("Found a component!!!\n", .{});
-        std.debug.print("Found position components!!!\n", .{});
+    if (component != null and transformComponents != null) {
+        std.debug.print("Found a component: {?}\n", .{component});
+        std.debug.print("Found transform components!!!\n", .{});
     }
 
     std.debug.print("Test print: {}\n", .{reg.entities.items[0]});
