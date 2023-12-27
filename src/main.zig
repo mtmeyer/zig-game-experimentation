@@ -32,6 +32,15 @@ pub fn main() !void {
     try reg.addComponent(ecs.ComponentUnion{ .position = .{ .entityId = 123, .data = .{ .x = -100, .y = -50 } } });
     try reg.addComponent(ecs.ComponentUnion{ .velocity = .{ .entityId = 123, .data = .{ .x = -100, .y = -50, .z = 123 } } });
 
+    var component = reg.getComponentByEntity(123, ecs.ComponentTypes.position);
+
+    var positionComponents = reg.getAllComponentsByType(ecs.PositionComponent);
+
+    if (component != null and positionComponents != null) {
+        std.debug.print("Found a component!!!\n", .{});
+        std.debug.print("Found position components!!!\n", .{});
+    }
+
     std.debug.print("Test print: {}\n", .{reg.entities.items[0]});
 
     raylib.SetConfigFlags(raylib.ConfigFlags{ .FLAG_WINDOW_RESIZABLE = true });

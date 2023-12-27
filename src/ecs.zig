@@ -3,14 +3,17 @@ const raylib = @import("raylib");
 
 // This redeclaration of types is 🤮
 fn AddSharedComponentFields(comptime T: type) type {
-    return struct { entityId: u16, data: T };
+    return struct {
+        entityId: u16,
+        data: T,
+    };
 }
 
 pub const ComponentTypes = enum { position, velocity, sprite };
 
-const PositionComponent = AddSharedComponentFields(raylib.Vector2);
-const VelocityComponent = AddSharedComponentFields(raylib.Vector3);
-const SpriteComponent = AddSharedComponentFields(raylib.Texture2D);
+pub const PositionComponent = AddSharedComponentFields(raylib.Vector2);
+pub const VelocityComponent = AddSharedComponentFields(raylib.Vector3);
+pub const SpriteComponent = AddSharedComponentFields(raylib.Texture2D);
 
 pub const ComponentUnion = union(ComponentTypes) { position: PositionComponent, velocity: VelocityComponent, sprite: SpriteComponent };
 
@@ -45,6 +48,7 @@ pub const Register = struct {
     }
 
     pub fn addComponent(self: *Register, data: ComponentUnion) !void {
+        // TODO: add functionality to ignore dupes
         switch (data) {
             .position => {
                 std.debug.print("Adding position component with entity id: {}\n", .{data.position.entityId});
@@ -60,6 +64,50 @@ pub const Register = struct {
             },
         }
     }
-};
 
-// Way to instantiate new list of components
+    pub fn getComponentByEntity(self: *Register, entityId: u16, component: ComponentTypes) ?ComponentUnion {
+        switch (component) {
+            .position => {
+                for (self.components.position.items) |item| {
+                    if (item.entityId == entityId) {
+                        return ComponentUnion{ .position = item };
+                    }
+                }
+            },
+            .velocity => {
+                for (self.components.velocity.items) |item| {
+                    if (item.entityId == entityId) {
+                        return ComponentUnion{ .velocity = item };
+                    }
+                }
+            },
+            .sprite => {
+                for (self.components.sprite.items) |item| {
+                    if (item.entityId == entityId) {
+                        return ComponentUnion{ .sprite = item };
+                    }
+                }
+            },
+        }
+        return null;
+    }
+
+    pub fn getAllComponentsByType(self: *Register, comptime T: type) ?[](T) {
+        std.debug.print("Type: {}", .{T});
+        switch (T) {
+            PositionComponent => {
+                return self.components.position.items;
+            },
+            VelocityComponent => {
+                return self.components.velocity.items;
+            },
+            SpriteComponent => {
+                return self.components.sprite.items;
+            },
+            else => {
+                std.debug.print("Whoops", .{});
+            },
+        }
+        return null;
+    }
+};
