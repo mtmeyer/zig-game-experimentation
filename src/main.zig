@@ -29,9 +29,8 @@ pub fn main() !void {
 
     _ = try reg.addEntity();
 
-    reg.addComponent(raylib.Vector2, ecs.ComponentTypes.velocity, raylib.Vector2{ .x = 0, .y = 10 });
-    reg.addComponent(raylib.Vector2, ecs.ComponentTypes.position, raylib.Vector2{ .x = -100, .y = -50 });
-    reg.addComponent(ecs.ComponentDataTypes.position, ecs.ComponentTypes.position, ecs.ComponentDataTypes.position{ .x = -100, .y = -50 });
+    try reg.addComponent(ecs.ComponentUnion{ .position = .{ .entityId = 123, .data = .{ .x = -100, .y = -50 } } });
+    try reg.addComponent(ecs.ComponentUnion{ .velocity = .{ .entityId = 123, .data = .{ .x = -100, .y = -50, .z = 123 } } });
 
     std.debug.print("Test print: {}\n", .{reg.entities.items[0]});
 

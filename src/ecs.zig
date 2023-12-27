@@ -2,20 +2,32 @@ const std = @import("std");
 const raylib = @import("raylib");
 
 // This redeclaration of types is 🤮
-pub const ComponentDataTypes = .{ .position = raylib.Vector2, .velocity = raylib.Vector2, .sprite = raylib.Texture2D };
-pub const Components = struct { position: std.ArrayList(ComponentDataTypes.position), velocity: std.ArrayList(ComponentDataTypes.velocity), sprite: std.ArrayList(ComponentDataTypes.sprite) };
+fn AddSharedComponentFields(comptime T: type) type {
+    return struct { entityId: u16, data: T };
+}
+
 pub const ComponentTypes = enum { position, velocity, sprite };
+
+const PositionComponent = AddSharedComponentFields(raylib.Vector2);
+const VelocityComponent = AddSharedComponentFields(raylib.Vector3);
+const SpriteComponent = AddSharedComponentFields(raylib.Texture2D);
+
+pub const ComponentUnion = union(ComponentTypes) { position: PositionComponent, velocity: VelocityComponent, sprite: SpriteComponent };
 
 pub const Register = struct {
     entities: std.ArrayList(u16) = undefined,
-    components: Components = undefined,
+    components: struct {
+        position: std.ArrayList(PositionComponent),
+        velocity: std.ArrayList(VelocityComponent),
+        sprite: std.ArrayList(SpriteComponent),
+    } = undefined,
 
     pub fn init(self: *Register, allocator: std.mem.Allocator) void {
         self.entities = std.ArrayList(u16).init(allocator);
-        self.components = Components{
-            .position = std.ArrayList(raylib.Vector2).init(allocator),
-            .velocity = std.ArrayList(raylib.Vector2).init(allocator),
-            .sprite = std.ArrayList(raylib.Texture2D).init(allocator),
+        self.components = .{
+            .position = std.ArrayList(PositionComponent).init(allocator),
+            .velocity = std.ArrayList(VelocityComponent).init(allocator),
+            .sprite = std.ArrayList(SpriteComponent).init(allocator),
         };
     }
 
@@ -32,11 +44,21 @@ pub const Register = struct {
         return id;
     }
 
-    pub fn addComponent(self: *Register, comptime T: type, componentType: ComponentTypes, data: T) void {
-        _ = self;
-        std.debug.print("componentType: {}\n", .{componentType});
-        std.debug.print("data: {}\n", .{data});
-        std.debug.print("type: {}\n", .{T});
+    pub fn addComponent(self: *Register, data: ComponentUnion) !void {
+        switch (data) {
+            .position => {
+                std.debug.print("Adding position component with entity id: {}\n", .{data.position.entityId});
+                try self.components.position.append(data.position);
+            },
+            .velocity => {
+                std.debug.print("Adding velocity component with entity id: {}\n", .{data.velocity.entityId});
+                try self.components.velocity.append(data.velocity);
+            },
+            .sprite => {
+                std.debug.print("Adding sprite component with entity id: {}\n", .{data.sprite.entityId});
+                try self.components.sprite.append(data.sprite);
+            },
+        }
     }
 };
 
