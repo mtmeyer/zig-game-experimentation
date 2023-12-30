@@ -3,8 +3,11 @@ const raylib = @import("raylib");
 
 const tileSize = 16;
 
-const screenWidth = tileSize * 80;
-const screenHeight = tileSize * 45;
+const widthInTiles = 80;
+const heightInTiles = 45;
+
+const screenWidth = tileSize * widthInTiles;
+const screenHeight = tileSize * heightInTiles;
 
 const MovementDirection = enum { Up, Down, Left, Right, None };
 
@@ -32,11 +35,19 @@ pub fn playGame() !void {
     setupWindow();
     defer raylib.CloseWindow();
 
+    raylib.InitAudioDevice();
+    defer raylib.CloseAudioDevice();
+
+    const snackSound = raylib.LoadSound("assets/audio/blip.ogg");
+    defer raylib.UnloadSound(snackSound);
+
     var currentMoveDirection = MovementDirection.Right;
     var playerInputDirection = MovementDirection.None;
 
     // Arbitrary high number to satisfy if loop on game launch
     var timeSinceLastTick: f32 = 100.0;
+
+    var score: i16 = 0;
 
     while (!raylib.WindowShouldClose()) {
         raylib.BeginDrawing();
@@ -44,8 +55,8 @@ pub fn playGame() !void {
 
         var dt = raylib.GetFrameTime();
 
-        const tickRate: f32 = dt * 5;
-        raylib.DrawFPS(10, 10);
+        const tickRate: f32 = dt * 4;
+        // raylib.DrawFPS(10, 10);
 
         raylib.ClearBackground(raylib.BLACK);
 
@@ -60,11 +71,14 @@ pub fn playGame() !void {
         }
 
         handleCollisionsWithSelf(&snakeSegments);
-        snack = try handleCollisionWithSnack(&snakeSegments, snack);
+        var snackTuple = try handleCollisionWithSnack(&snakeSegments, snack, snackSound, score);
+        snack = snackTuple[0];
+        score = snackTuple[1];
 
         renderSnake(&snakeSegments);
 
         raylib.DrawRectangle(snack.x, snack.y, tileSize, tileSize, raylib.LIME);
+        raylib.DrawText(try raylib.TextFormat(std.heap.c_allocator, "{}", .{score}), 40, 40, 30, raylib.WHITE);
     }
 }
 
@@ -134,7 +148,17 @@ fn moveSnake(snakeSegments: *std.ArrayList(raylib.Vector2i), currentMoveDirectio
         }
     }
 
-    const newFrontSegment = raylib.Vector2i{ .x = snakeSegments.items[0].x + moveChangeVector.x, .y = snakeSegments.items[0].y + moveChangeVector.y };
+    var newFrontSegment = raylib.Vector2i{ .x = snakeSegments.items[0].x + moveChangeVector.x, .y = snakeSegments.items[0].y + moveChangeVector.y };
+
+    if (newFrontSegment.x > screenWidth) {
+        newFrontSegment.x = 0;
+    } else if (newFrontSegment.x <= 0) {
+        newFrontSegment.x = screenWidth;
+    } else if (newFrontSegment.y == screenHeight) {
+        newFrontSegment.y = 0;
+    } else if (newFrontSegment.y < 0) {
+        newFrontSegment.y = screenHeight;
+    }
 
     if (snakeSegments.items.len == 1) {
         const newFrontSegmentInsertArray: [1]raylib.Vector2i = .{newFrontSegment};
@@ -176,9 +200,13 @@ fn handleCollisionsWithSelf(snakeSegments: *std.ArrayList(raylib.Vector2i)) void
     }
 }
 
-fn handleCollisionWithSnack(snakeSegments: *std.ArrayList(raylib.Vector2i), snack: raylib.Vector2i) !raylib.Vector2i {
+const SnackCollisionReturnTuple = std.meta.Tuple(&.{ raylib.Vector2i, i16 });
+
+fn handleCollisionWithSnack(snakeSegments: *std.ArrayList(raylib.Vector2i), snack: raylib.Vector2i, snackSound: raylib.Sound, score: i16) !SnackCollisionReturnTuple {
     const head = snakeSegments.items[0];
     if (raylib.CheckCollisionRecs(rect(head), rect(snack))) {
+        raylib.PlaySound(snackSound);
+
         const lastSegment = snakeSegments.items[snakeSegments.items.len - 1];
         const secondLastSegment = snakeSegments.items[snakeSegments.items.len - 2];
         const diff: raylib.Vector2i = .{ .x = lastSegment.x - secondLastSegment.x, .y = lastSegment.y - secondLastSegment.y };
@@ -187,9 +215,13 @@ fn handleCollisionWithSnack(snakeSegments: *std.ArrayList(raylib.Vector2i), snac
 
         try snakeSegments.append(newSegment);
 
-        return .{ .x = -100, .y = -100 };
+        var rand = std.crypto.random;
+        var newSnackX = rand.intRangeAtMost(i16, 1, widthInTiles - 3);
+        var newSnackY = rand.intRangeAtMost(i16, 1, heightInTiles - 3);
+
+        return .{ .{ .x = newSnackX * tileSize, .y = newSnackY * tileSize }, score + 1 };
     } else {
-        return snack;
+        return .{ snack, score };
     }
 }
 
@@ -201,4 +233,11 @@ fn gameOver() void {
 fn rect(vector: raylib.Vector2i) raylib.Rectangle {
     const returnValue: raylib.Rectangle = .{ .x = @floatFromInt(vector.x), .y = @floatFromInt(vector.y), .width = tileSize, .height = tileSize };
     return returnValue;
+}
+
+fn intToString(int: u32) ![*:0]const u8 {
+    var buf: []u8 = undefined;
+    var str = try std.fmt.bufPrint(buf, "{}", .{int});
+    var testing: [*:0]u8 = str;
+    return testing;
 }
