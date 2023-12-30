@@ -19,6 +19,11 @@ pub fn playGame() !void {
     defer snakeSegments.deinit();
 
     try snakeSegments.append(.{ .x = 96, .y = 96 });
+    try snakeSegments.append(.{ .x = 80, .y = 96 });
+    try snakeSegments.append(.{ .x = 64, .y = 96 });
+    try snakeSegments.append(.{ .x = 64, .y = 80 });
+    try snakeSegments.append(.{ .x = 64, .y = 64 });
+    try snakeSegments.append(.{ .x = 64, .y = 48 });
 
     setupWindow();
     defer raylib.CloseWindow();
@@ -44,17 +49,16 @@ fn moveSnake(snakeSegments: *std.ArrayList(raylib.Vector2i), currentMoveDirectio
     var moveChangeVector: raylib.Vector2i = .{ .x = 0, .y = 0 };
     var finalMoveDir: MovementDirection = MovementDirection.Right;
 
-    // TODO: add logiv for not being able to double back on self
-    if (raylib.IsKeyDown(.KEY_W)) {
+    if (raylib.IsKeyDown(.KEY_W) and currentMoveDirection != MovementDirection.Down) {
         moveChangeVector.y -= 1 * tileSize;
         finalMoveDir = MovementDirection.Up;
-    } else if (raylib.IsKeyDown(.KEY_S)) {
+    } else if (raylib.IsKeyDown(.KEY_S) and currentMoveDirection != MovementDirection.Up) {
         moveChangeVector.y += 1 * tileSize;
         finalMoveDir = MovementDirection.Down;
-    } else if (raylib.IsKeyDown(.KEY_D)) {
+    } else if (raylib.IsKeyDown(.KEY_D) and currentMoveDirection != MovementDirection.Left) {
         moveChangeVector.x += 1 * tileSize;
         finalMoveDir = MovementDirection.Right;
-    } else if (raylib.IsKeyDown(.KEY_A)) {
+    } else if (raylib.IsKeyDown(.KEY_A) and currentMoveDirection != MovementDirection.Right) {
         moveChangeVector.x -= 1 * tileSize;
         finalMoveDir = MovementDirection.Left;
     }
@@ -77,17 +81,25 @@ fn moveSnake(snakeSegments: *std.ArrayList(raylib.Vector2i), currentMoveDirectio
         }
     }
 
-    for (0..snakeSegments.items.len, snakeSegments.items) |i, segment| {
-        const newSegment = raylib.Vector2i{ .x = segment.x + moveChangeVector.x, .y = segment.y + moveChangeVector.y };
-        const segmentArray: [1]raylib.Vector2i = .{newSegment};
-        try snakeSegments.replaceRange(i, 1, &segmentArray);
+    const newFrontSegment = raylib.Vector2i{ .x = snakeSegments.items[0].x + moveChangeVector.x, .y = snakeSegments.items[0].y + moveChangeVector.y };
+
+    if (snakeSegments.items.len == 1) {
+        const newFrontSegmentInsertArray: [1]raylib.Vector2i = .{newFrontSegment};
+        try snakeSegments.replaceRange(0, 1, &newFrontSegmentInsertArray);
+    } else {
+        _ = snakeSegments.pop();
+        try snakeSegments.insert(0, newFrontSegment);
     }
 
     return finalMoveDir;
 }
 
 fn renderSnake(snakeSegments: std.ArrayList(raylib.Vector2i)) void {
-    for (snakeSegments.items) |segment| {
-        raylib.DrawRectangle(segment.x, segment.y, tileSize, tileSize, raylib.WHITE);
+    for (0..snakeSegments.items.len, snakeSegments.items) |i, segment| {
+        if (i == 0) {
+            raylib.DrawRectangle(segment.x, segment.y, tileSize, tileSize, raylib.SKYBLUE);
+        } else {
+            raylib.DrawRectangle(segment.x, segment.y, tileSize, tileSize, raylib.WHITE);
+        }
     }
 }
